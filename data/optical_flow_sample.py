@@ -56,5 +56,3 @@ for hundreds in range(3):
             # Now update the previous frame and previous points
             old_gray = frame_gray.copy()
             p0 = good_new.reshape(-1,1,2)
-        cv.destroyAllWindows()
-        cap.release()
