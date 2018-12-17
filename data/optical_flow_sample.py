@@ -1,14 +1,20 @@
 import numpy as np
 import cv2 as cv
+
+import pdb
+
+FRAMES_PER_CLIP=10
+
 for hundreds in range(3):
     for tens in range(10): 
+        #pdb.set_trace()
         #cap = cv.VideoCapture('fortnite_single_90.mp4')
         #cap = cv.VideoCapture('sliced_fortnite_90_mp4s/frames003x.mp4')
         cap = cv.VideoCapture('sliced_fortnite_90_mp4s/frames0{}{}x.mp4'.format(hundreds, tens))
         # params for ShiTomasi corner detection
-        feature_params = dict( maxCorners = 100,
-                               qualityLevel = 0.3,
-                               minDistance = 7,
+        feature_params = dict( maxCorners = 4500,
+                               qualityLevel = 0.0005,
+                               minDistance = 5,
                                blockSize = 7 )
         # Parameters for lucas kanade optical flow
         lk_params = dict( winSize  = (15,15),
@@ -22,8 +28,23 @@ for hundreds in range(3):
         p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
         # Create a mask image for drawing purposes
         mask = np.zeros_like(old_frame)
-        for i in range(10):
+
+	# Print the features to track
+
+
+        for i in range(FRAMES_PER_CLIP):
             ret,frame = cap.read()
+
+	    for point in p0:
+	        a, b = point[0].ravel()
+		#print("Showing the selected corners: {}, {}".format(a, b))
+	        frame = cv.circle(frame, (a,b),3,color[i].tolist(),-1)
+	        #img = cv.add(frame, mask) # Add this back if you want to see the corners
+
+	    print("{} corners total".format(p0.shape[0]))
+	    #cv.imshow('frame', img) # Add this back for corners
+	    #cv.waitKey(1) # Add this back for corners
+	    #raw_input("Press something to continue") # Wait for user to continue
 
             # frame is a multi-dimensional array, until .read() finishes and it's "None".
             # Unfortunately, python will not let me compare the array to "None", i.e. frame == None, so we do this
@@ -31,10 +52,8 @@ for hundreds in range(3):
             try:
                 frame.any()
             except AttributeError:
-                print("No frame, aborting!")
-                #import pdb; pdb.set_trace()
+                print("No frame, skipping to next video")
                 break
-            #import pdb; pdb.set_trace()
             frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             # calculate optical flow
             p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
@@ -45,12 +64,15 @@ for hundreds in range(3):
             for i,(new,old) in enumerate(zip(good_new,good_old)):
                 a,b = new.ravel()
                 c,d = old.ravel()
-                mask = cv.line(mask, (a,b),(c,d), color[i].tolist(), 2)
-                frame = cv.circle(frame,(a,b),5,color[i].tolist(),-1)
+                #mask = cv.line(mask, (a,b),(c,d), color[i % len(color)].tolist(), 2) # Add this for random colors
+                #frame = cv.circle(frame,(a,b),3,color[i % len(color)].tolist(),-1) # Add this for random colors
+                mask = cv.line(mask, (a,b),(c,d), color[0].tolist(), 2) # Add this for random colors
+                frame = cv.circle(frame,(a,b),3,color[0].tolist(),-1) # Add this for random colors
             img = cv.add(frame,mask)
             #import pdb; pdb.set_trace()
-            cv.imshow('frame',img) # this line
-            k = cv.waitKey(30) & 0xff
+            cv.imshow('frame',img) # this line draws the illustration
+            k = cv.waitKey(150) & 0xff
+	    #raw_input("Press something to continue") # Wait for user to continue
             if k == 27:
                 break
             # Now update the previous frame and previous points
