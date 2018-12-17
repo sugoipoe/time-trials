@@ -15,7 +15,6 @@ numpy==1.15.4
 opencv-contrib-python==3.4.4.19
 opencv-python==3.4.4.19
 pbr==5.1.1
-pkg-resources==0.0.0
 protobuf==3.6.1
 six==1.11.0
 tensorboard==1.12.0
