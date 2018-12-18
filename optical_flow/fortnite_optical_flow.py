@@ -51,6 +51,19 @@ def velocity_between_points(x1, y1, x2, y2):
     print(distance, direction)
     return distance, direction
 
+
+def extract_background_corners(filter_bucket):
+  # Try to drop corners from the foreground.
+  # We do this by getting velocity vectors for every corner, finding the most common
+  # bucket, based on direction, and dropping other buckets.
+
+  direction = max(map(lambda x: (len(x[1]),x[0]), filter_bucket.iteritems()))[1] # Get the direction of most common bucket [-180,180]
+  # Find the biggest bucket
+  # Get all the corners that contribute to the bucket
+  # Return those corners
+  corners = map(lambda x: x[2], filter_bucket[-175]) # index 2 is the tuple: (x, y)
+  return corners
+
 def process_clip(filename, feature_params, lk_params, color):
   # Buckets for filtering out corners in the foreground
   filter_bucket = defaultdict(list)
@@ -90,7 +103,7 @@ def process_clip(filename, feature_params, lk_params, color):
       good_new = p1[st==1]
       good_old = p0[st==1]
       
-      # draw the tracks
+      # iterate through corners and populate filter_bucket
       for i,(new,old) in enumerate(zip(good_new,good_old)):
           # Unpack x/y coordinates for corners before and after
           a,b = new.ravel()
@@ -98,12 +111,21 @@ def process_clip(filename, feature_params, lk_params, color):
 
           # Calculate the velocity vector to filter corners into buckets
           distance, direction = velocity_between_points(a,b,c,d)
-          filter_bucket[int(direction)].append((distance, direction))
+          filter_bucket[int(direction)].append((distance, direction, (a, b)))
 
-          # Generate lines (no gameplay image) between old and new corners
-          mask = cv.line(mask, (a,b),(c,d), color[0].tolist(), 2)
-          # Overlay corner locations on the original frame
-          frame = cv.circle(frame,(a,b),3,color[0].tolist(),-1)
+          if i != 0:
+            # Generate lines (no gameplay image) between old and new corners
+            mask = cv.line(mask, (a,b),(c,d), color[0].tolist(), 2)
+            # Overlay corner locations on the original frame
+            frame = cv.circle(frame,(a,b),3,color[0].tolist(),-1)
+      
+      background_corners_list = extract_background_corners(filter_bucket)
+      background_corners_np = np.asarray(background_corners_list)
+      background_corners_np = background_corners_np.reshape(-1, 1, 2) # matches p0 shape
+
+      # iterate through new corners
+          
+      
 
       # Overlay lines on the frame w/ corner circles
       img = cv.add(frame, mask)
@@ -113,7 +135,8 @@ def process_clip(filename, feature_params, lk_params, color):
           break
       # Keep old frame to compare against the next
       old_gray = frame_gray.copy()
-      p0 = good_new.reshape(-1,1,2)
+      p0 = background_corners_np
+      # p0 = good_new.reshape(-1,1,2) # Using background_corners_np as the new features to track...
 
 
 def optical_flow(args):
